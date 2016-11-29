@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head> 
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/ >
+    <meta HTTP-EQUIV="X-UA-COMPATIBLE" CONTENT="IE=EmulateIE9" >
+
+    <title>Recipe Recommender</title>
+
+    <!-- Google fonts -->
+    <link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="static/fonts/bariol/bariol.css"/>
+    <link rel="stylesheet" href="static/style.css"/>
+    <link rel="stylesheet" href="static/formatting.css"/>    
+    <link rel="stylesheet" href="static/help.css"/>        
+
+    <!-- D3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+    
+    <style>
+      body {
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1em;
+        font-weight: 300;
+        fill: #242424;
+        text-align: center;
+        text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+        cursor: default;
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        padding-left: 0px;
+        overflow-x: hidden; 
+      }
+      
+      pre {
+        font-size: .6em;
+      }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .bar {
+      fill: steelblue;
+    }
+
+    .x.axis path {
+      display: none;
+    }
+
+    .legend {
+    font-family: 'Raleway', sans-serif;
+    fill: #333333;
+    }
+
+    .tooltip {
+    fill: #333333;
+    }
+
+    </style>
+  
+  </head>
+
+  <body>
+
+    <div style="background-color: #9F0000"> 
+    <pre class="tooltip_body" style="padding-top:2%; margin:0%; color: #ffffff; text-shadow: none; font-family: apple casual; font-size: 15px;"> Find recipes similar to the ones you love based on ingredients. </pre> 
+
+    <div class="help-tip">
+    <p>
+        This app takes your favorite recipes from allrecipes.com and returns recipe recommendations based on shared ingredients.<br><br>
+        1. Paste the URL to a recipe you like from allrecipes.com and click 'Find similar recipes'.<br><br>
+        2. Be patient! Results are being pulled from web and take some time to load. <br><br>
+        3. When the results finally appear, you can view the recommendations, as well as a chart comparing the recipes. <br><br>  
+
+        Behind the scenes, ingredients are grouped into statistically similar categories, and then recipes are compared based on category alignment.  This is what you'll see
+        in the chart.  You can learn more about this process <a href="https://rjs2015.github.io/" style="color: red; text-decoration: none;">here</a>.
+    </p>
+    </div>  
+
+    <input style="margin:20px; width:50%;" type="text" id="myText" value="">
+    <button onclick="myFunction()">Find similar recipes</button>
+    </div>
+
+
+    <img class='logo' src="static/pictures/logo.jpg" style="position: absolute; top: 3%; left: 3%; height: 8%; width: 10%;"></img>
+
+    <div id='bar_chart' style="font: 10px sans-serif; padding-top: 10px;"> </div>
+
+    <div>
+
+    <div class = 'rec_tile' style="left:70%;">
+    <div id="recipe_title_1" style="font-size:14px; padding-top:10px;"></div>
+    <a id="link_1" href="">
+    <img class = 'recipe_pic' id="recipe_pic_1" src="static/pictures/grey.jpg">
+    </a>
+	<div class = 'recipe_desc' id="recipe_desc_1">
+        
+	</div>
+    </div>
+
+    <div class = 'rec_tile' style="left:40%;">
+    <div id="recipe_title_2" style="font-size:14px; padding-top:10px;"></div>
+    <a id="link_2" href="">
+    <img class = 'recipe_pic' id="recipe_pic_2" src="static/pictures/grey.jpg">
+    </a>
+    <div class = 'recipe_desc' id="recipe_desc_2">
+	</div>
+    </div>
+
+    <div class = 'rec_tile' style="left:10%;">
+    <div id="recipe_title_3" style="font-size:14px; padding-top:10px;"></div>
+    <a id="link_3" href="">    
+    <img class = 'recipe_pic' id="recipe_pic_3" src="static/pictures/grey.jpg">
+    </a>
+    <div class = 'recipe_desc' id="recipe_desc_3">
+	</div>
+    </div>
+
+    </div>
+
+    <div style="background-color: #9F0000; position:absolute; bottom:0px; width:100%; height:4%;"> 
+    <pre class="tooltip_body" style="margin:0px; color: #ffffff; text-shadow: none; font-family: apple casual; font-size: 15px;"></pre> 
+    </div>
+
+    <!-- Import the libraries: jQuery, d3 -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
+
+    <script src='static/jquery-3.1.1.min.js'> </script>
+
+    <script>
+          
+	document.getElementById("myText").value = 'allrecipes.com link here...'
+
+    function myFunction() {
+    var url = document.getElementById("myText").value;
+	fetch_recipes(url);}
+
+     <!-- FUNCTION TO GET CHANCE FROM YOUR PREDICTOR WITH AJAX AND CHANGE BAR  HEIGHT -->
+     function fetch_recipes(url) {
+
+      var data = JSON.stringify({
+        urls: [url]
+      });
+
+       $.ajax({
+         type: "POST",
+         contentType: "application/json; charset=utf-8",
+         url: "/recs/",
+         dataType: "json",
+         async: true,
+         data: data,
+         success: function (data) {
+           
+        d3.select("svg").remove();   
+
+        var first_match = data[1]['title'];
+        var second_match = data[2]['title'];  
+        var third_match = data[3]['title'];  
+           
+       var margin = {top: 25, right: 20, bottom: 35, left: 40},
+        width = 1300 - margin.left - margin.right,
+        height = 250 - margin.top - margin.bottom;
+
+        var x0 = d3.scale.ordinal()
+            .rangeRoundBands([0, width], .1);
+
+        var x1 = d3.scale.ordinal();
+
+        var y = d3.scale.linear()
+            .range([height, 0]);
+
+        var color = d3.scale.ordinal()
+            .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b"]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x0)
+            .orient("bottom")
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+
+        var svg = d3.select("#bar_chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+       
+          var recipes = d3.keys(data['chart_data'][0]).filter(function(key) { return key !== "topic"; });
+         
+
+          x0.domain(data['chart_data'].map(function(d) { return d.topic; }));
+          x1.domain(recipes).rangeRoundBands([0, x0.rangeBand()]);
+          y.domain([0, d3.max(data['chart_data'], function(d) { return d3.max(d.scores, function(d) { return d.value; }); })]);
+
+          svg.append("g")
+              .attr("class", "x axis")
+              .attr("transform", "translate(0," + height + ")")          
+              .call(xAxis)
+            .selectAll("text")
+                .style("font-size", "8px");
+      
+          svg.append("g")
+              .attr("class", "y axis")
+              .call(yAxis)
+            .append("text")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 6)
+              .attr("dy", ".71em")
+              .style("text-anchor", "end")
+              .text("Category Alignment");
+         
+        svg.append("text")
+                .attr("x", (width / 2))             
+                .attr("y", 0 - (margin.top / 2))
+                .attr("text-anchor", "middle")  
+                .style("font-size", "1.5em") 
+                .style("font-weight", "bold")  
+                .text("Recipe Alignment to Ingredient Categories");
+         
+        svg.append("text")
+            .attr("class", "x label")
+            .attr("text-anchor", "end")
+            .attr("x", width)
+            .attr("y", height + 30)
+            .text("Ingredient Categories");
+
+          var topic = svg.selectAll(".topic")
+              .data(data['chart_data'])
+            .enter().append("g")
+              .attr("class", "topic")
+              .attr("transform", function(d) { return "translate(" + x0(d.topic) + ",0)"; })
+
+          topic.selectAll("rect")
+              .data(function(d) { return d.scores; })
+            .enter().append("rect")
+              .attr("width", x1.rangeBand())
+              .attr("x", function(d) { return x1(d.name); })
+              .attr("y", function(d) { return y(d.value); })
+              .attr("height", function(d) { return height - y(d.value); })
+              .style("fill", function(d) { return color(d.name); });
+
+          recipe_names = ['Your Recipe', first_match, second_match, third_match]
+
+          var legend = svg.selectAll(".legend")
+              .data(recipe_names.slice())
+            .enter().append("g")
+              .attr("class", "legend")
+              .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+          legend.append("rect")
+              .attr("x", width - 18)
+              .attr("width", 18)
+              .attr("height", 18)
+              .style("fill", color);
+
+          legend.append("text")
+              .attr("x", width - 24)
+              .attr("y", 9)
+              .attr("dy", ".35em")
+              .style("text-anchor", "end")          
+              .text(function(d) { return d; });
+         
+         document.getElementById("recipe_pic_3").src=data[1]['img']
+         document.getElementById("recipe_title_3").innerHTML=data[1]['title']
+         document.getElementById("recipe_desc_3").innerHTML=data[1]['desc']
+         document.getElementById("link_3").href=data[1]['link']
+
+         document.getElementById("recipe_pic_2").src=data[2]['img']
+         document.getElementById("recipe_title_2").innerHTML=data[2]['title']
+         document.getElementById("recipe_desc_2").innerHTML=data[2]['desc']
+         document.getElementById("link_2").href=data[2]['link']
+
+         document.getElementById("recipe_pic_1").src=data[3]['img']
+         document.getElementById("recipe_title_1").innerHTML=data[3]['title']
+         document.getElementById("recipe_desc_1").innerHTML=data[3]['desc']
+         document.getElementById("link_1").href=data[3]['link'];
+         },
+         error: function (result) {
+         }
+       })
+     }
+
+    </script>
+
+    <script>
+
+    </script>
+
+  </body>
+</html>

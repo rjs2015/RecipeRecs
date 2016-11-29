@@ -1,0 +1,24 @@
+.rec_tile {
+	 position: absolute;
+	 bottom:7%;
+     border-radius: 25px;
+     border: 2px solid #000000;
+	 width:20%;
+	 height:35%;
+}
+
+.recipe_pic {
+	width:65%;
+	height:50%;
+	padding-bottom:3px;
+}
+
+.recipe_desc {
+	font-size:.8em;
+	width:65%;
+	height:35%;
+	word-wrap: break-word;
+	position:absolute;
+	left:17%;
+	overflow-y: auto;
+}
